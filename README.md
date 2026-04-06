@@ -30,7 +30,7 @@ kubectl create secret generic ddos-guard-credentials \
 helm install cert-manager-webhook-ddos-guard \
   --namespace=cert-manager \
   --set groupName='acme.stasian.dev' \
-  deploy/example-webhook
+  deploy/cert-manager-webhook-ddos-guard
 ```
 
 The `groupName` must be a unique domain name you own. It is used as the
