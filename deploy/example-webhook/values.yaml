@@ -15,7 +15,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: mycompany/webhook-image
+  repository: stasian/cert-manager-webhook-ddos-guard
   tag: latest
   pullPolicy: IfNotPresent
 

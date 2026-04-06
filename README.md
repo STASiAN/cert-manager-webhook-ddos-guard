@@ -2,62 +2,82 @@
   <img src="https://raw.githubusercontent.com/cert-manager/cert-manager/d53c0b9270f8cd90d908460d69502694e1838f5f/logo/logo-small.png" height="256" width="256" alt="cert-manager project logo" />
 </p>
 
-# ACME webhook example
+# cert-manager-webhook-ddos-guard
 
-The ACME issuer type supports an optional 'webhook' solver, which can be used
-to implement custom DNS01 challenge solving logic.
+A [cert-manager](https://cert-manager.io/) ACME DNS-01 webhook solver for
+[DDoS-Guard](https://ddos-guard.net/) DNS hosting.
 
-This is useful if you need to use cert-manager with a DNS provider that is not
-officially supported in cert-manager core.
+## Prerequisites
 
-## Why not in core?
+- A Kubernetes cluster with cert-manager installed
+- A DDoS-Guard account with DNS hosting and API access
+- Your domain's DNS zone must already exist in DDoS-Guard
 
-As the project & adoption has grown, there has been an influx of DNS provider
-pull requests to our core codebase. As this number has grown, the test matrix
-has become un-maintainable and so, it's not possible for us to certify that
-providers work to a sufficient level.
+## Installation
 
-By creating this 'interface' between cert-manager and DNS providers, we allow
-users to quickly iterate and test out new integrations, and then packaging
-those up themselves as 'extensions' to cert-manager.
-
-We can also then provide a standardised 'testing framework', or set of
-conformance tests, which allow us to validate that a DNS provider works as
-expected.
-
-## Creating your own webhook
-
-Webhook's themselves are deployed as Kubernetes API services, in order to allow
-administrators to restrict access to webhooks with Kubernetes RBAC.
-
-This is important, as otherwise it'd be possible for anyone with access to your
-webhook to complete ACME challenge validations and obtain certificates.
-
-To make the set up of these webhook's easier, we provide a template repository
-that can be used to get started quickly.
-
-When implementing your webhook, you should set the `groupName` in the
-[values.yml](deploy/example-webhook/values.yaml) of your chart to a domain name that 
-you - as the webhook-author - own. It should not need to be adjusted by the users of
-your chart.
-
-### Creating your own repository
-
-### Running the test suite
-
-All DNS providers **must** run the DNS01 provider conformance testing suite,
-else they will have undetermined behaviour when used with cert-manager.
-
-**It is essential that you configure and run the test suite when creating a
-DNS01 webhook.**
-
-An example Go test file has been provided in [main_test.go](https://github.com/cert-manager/webhook-example/blob/master/main_test.go).
-
-You can run the test suite with:
+### 1. Create a Kubernetes Secret with your DDoS-Guard credentials
 
 ```bash
-$ TEST_ZONE_NAME=example.com. make test
+kubectl create secret generic ddos-guard-credentials \
+  --namespace=cert-manager \
+  --from-literal=client-id='YOUR_CLIENT_ID' \
+  --from-literal=api-key='YOUR_API_KEY'
 ```
 
-The example file has a number of areas you must fill in and replace with your
-own options in order for tests to pass.
+### 2. Install the webhook with Helm
+
+```bash
+helm install cert-manager-webhook-ddos-guard \
+  --namespace=cert-manager \
+  --set groupName='acme.yourdomain.com' \
+  deploy/example-webhook
+```
+
+The `groupName` must be a unique domain name you own. It is used as the
+Kubernetes API group for the webhook.
+
+### 3. Configure an Issuer
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: your-email@example.com
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+      - dns01:
+          webhook:
+            groupName: acme.yourdomain.com
+            solverName: ddos-guard
+            config:
+              clientIdSecretRef:
+                name: ddos-guard-credentials
+                key: client-id
+              apiKeySecretRef:
+                name: ddos-guard-credentials
+                key: api-key
+```
+
+## Configuration
+
+The webhook config accepts:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `clientIdSecretRef.name` | string | Name of the Secret containing the DDoS-Guard client ID |
+| `clientIdSecretRef.key` | string | Key within the Secret |
+| `apiKeySecretRef.name` | string | Name of the Secret containing the DDoS-Guard API key |
+| `apiKeySecretRef.key` | string | Key within the Secret |
+
+## Running the test suite
+
+All DNS providers **must** run the DNS01 provider conformance testing suite.
+
+```bash
+TEST_ZONE_NAME=example.com. make test
+```

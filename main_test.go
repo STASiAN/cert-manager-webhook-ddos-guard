@@ -6,7 +6,7 @@ import (
 
 	acmetest "github.com/cert-manager/cert-manager/test/acme"
 
-	"github.com/cert-manager/webhook-example/example"
+	"github.com/stasian/cert-manager-webhook-ddos-guard/example"
 )
 
 var (
@@ -14,18 +14,25 @@ var (
 )
 
 func TestRunsSuite(t *testing.T) {
-	// The manifest path should contain a file named config.json that is a
-	// snippet of valid configuration that should be included on the
-	// ChallengeRequest passed as part of the test cases.
+	// To run the full conformance suite against the real DDoS-Guard solver,
+	// set TEST_ZONE_NAME and ensure testdata/my-custom-solver/config.json
+	// contains valid clientIdSecretRef and apiKeySecretRef configuration.
 	//
+	// Example:
+	//   TEST_ZONE_NAME=example.com. go test -v .
+	//
+	if zone != "" {
+		fixture := acmetest.NewFixture(&customDNSProviderSolver{},
+			acmetest.SetResolvedZone(zone),
+			acmetest.SetAllowAmbientCredentials(false),
+			acmetest.SetManifestPath("testdata/my-custom-solver"),
+		)
+		fixture.RunBasic(t)
+		fixture.RunExtended(t)
+		return
+	}
 
-	// Uncomment the below fixture when implementing your custom DNS provider
-	//fixture := acmetest.NewFixture(&customDNSProviderSolver{},
-	//	acmetest.SetResolvedZone(zone),
-	//	acmetest.SetAllowAmbientCredentials(false),
-	//	acmetest.SetManifestPath("testdata/my-custom-solver"),
-	//	acmetest.SetBinariesPath("_test/kubebuilder/bin"),
-	//)
+	// Default: run against the in-memory example solver (no credentials needed)
 	solver := example.New("59351")
 	fixture := acmetest.NewFixture(solver,
 		acmetest.SetResolvedZone("example.com."),
@@ -33,9 +40,6 @@ func TestRunsSuite(t *testing.T) {
 		acmetest.SetDNSServer("127.0.0.1:59351"),
 		acmetest.SetUseAuthoritative(false),
 	)
-	//need to uncomment and  RunConformance delete runBasic and runExtended once https://github.com/cert-manager/cert-manager/pull/4835 is merged
-	//fixture.RunConformance(t)
 	fixture.RunBasic(t)
 	fixture.RunExtended(t)
-
 }
