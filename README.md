@@ -29,7 +29,7 @@ kubectl create secret generic ddos-guard-credentials \
 ```bash
 helm install cert-manager-webhook-ddos-guard \
   --namespace=cert-manager \
-  --set groupName='acme.yourdomain.com' \
+  --set groupName='acme.stasian.dev' \
   deploy/example-webhook
 ```
 
@@ -52,7 +52,7 @@ spec:
     solvers:
       - dns01:
           webhook:
-            groupName: acme.yourdomain.com
+            groupName: acme.stasian.dev
             solverName: ddos-guard
             config:
               clientIdSecretRef:
