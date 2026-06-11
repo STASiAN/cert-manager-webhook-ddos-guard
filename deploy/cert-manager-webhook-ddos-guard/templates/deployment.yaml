@@ -28,6 +28,9 @@ spec:
           args:
             - --tls-cert-file=/tls/tls.crt
             - --tls-private-key-file=/tls/tls.key
+            {{- with .Values.logLevel }}
+            - --v={{ . }}
+            {{- end }}
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}

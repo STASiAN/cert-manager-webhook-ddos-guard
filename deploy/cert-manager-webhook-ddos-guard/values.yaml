@@ -19,6 +19,9 @@ image:
   tag: latest
   pullPolicy: Always
 
+# klog verbosity: 0=error, 1=warn, 2=info, 3=extended info, 4=debug, 5=trace
+logLevel: 4
+
 nameOverride: ""
 fullnameOverride: ""
 
