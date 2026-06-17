@@ -15,7 +15,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: stasian/cert-manager-webhook-ddos-guard
+  repository: ghcr.io/stasian/cert-manager-webhook-ddos-guard
   tag: latest
   pullPolicy: Always
 
